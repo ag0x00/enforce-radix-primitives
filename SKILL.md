@@ -129,7 +129,6 @@ STOP if you think:
 - "Just add className, it's faster" - Use theme props
 - "Match existing code" - Refactor, don't copy debt
 - "It's just one div" - Use `<Box>` or `<Flex>`
-- "User said quickly" - Radix components ARE quick
 - "className='flex gap-2' is fine" - No. Use `<Flex gap="2">`
 - "I need custom spacing" - Use theme scale: `gap="4"` not `gap-[17px]`
 
@@ -144,6 +143,52 @@ grep -r "<div" app/ pages/ --include="*.tsx"
 grep -r "<button" app/ pages/ --include="*.tsx"
 grep -r "<p>" app/ pages/ --include="*.tsx"
 ```
+
+## Loading States
+
+**RULE: Always use Skeleton for content that takes time to load.**
+
+```tsx
+import { Skeleton, Spinner, Button } from '@radix-ui/themes';
+
+// Wrap content - inherits dimensions
+<Skeleton loading={isLoading}>
+  <Text>Content appears when loaded</Text>
+</Skeleton>
+
+// Button with loading state (auto-disables, shows spinner)
+<Button loading={isSaving}>Save</Button>
+```
+
+## Animation & Microinteractions
+
+**RULE: All interactive elements should have motion feedback.**
+
+Use `data-state` and `data-side` attributes for CSS animations:
+
+```css
+.DialogContent[data-state="open"] {
+  animation: slideIn 300ms ease-out;
+}
+.PopoverContent[data-side="bottom"] {
+  animation: slideDown 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+```
+
+## Documentation
+
+**For detailed API reference, use Context7 to fetch latest docs:**
+
+```
+Context7 library IDs:
+- /websites/radix-ui_themes     (Radix Themes components)
+- /websites/radix-ui-primitives (Radix Primitives)
+- /websites/radix-ui_colors     (Color system)
+```
+
+Query topics: `layout`, `typography`, `Button`, `animation`, `Skeleton`, `Theme setup`, etc.
+
+See `references/radix-themes-api.md` for offline quick reference.
 
 ## Quick Reference
 
@@ -166,6 +211,10 @@ grep -r "<p>" app/ pages/ --include="*.tsx"
 <TextArea placeholder="..." />
 <Checkbox defaultChecked />
 <Switch size="2" />
+
+// Loading
+<Skeleton loading={isLoading}><Text>...</Text></Skeleton>
+<Button loading>Saving...</Button>
 
 // Responsive (object syntax)
 <Flex direction={{ initial: "column", md: "row" }}>
