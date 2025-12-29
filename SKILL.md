@@ -1,6 +1,6 @@
 ---
 name: enforce-radix-primitives
-description: Use when writing ANY React/Next.js UI code, creating components, layouts, or modifying pages - prevents inline Tailwind, raw HTML elements (div, button, input, a), and className usage; enforces Radix Themes components and theme props
+description: Use when writing ANY React/Next.js UI code, creating components, layouts, or modifying pages - prevents inline Tailwind, raw HTML elements (div, button, input, a), and className usage; enforces Radix Themes components and theme props; replaces simple 3rd party components with Radix equivalents, flags complex ones for review
 ---
 
 # Enforce Radix Primitives
@@ -110,18 +110,68 @@ export default function SettingsPage() {
 
 ## Third-Party Components
 
-**Do NOT refactor third-party component internals.** Flag as deviation:
+**Replace simple 3rd party components with Radix equivalents. Flag complex ones.**
+
+### Simple Components → Replace
+
+If a 3rd party component has a direct Radix equivalent, replace it:
+
+| 3rd Party | Radix Replacement |
+|-----------|-------------------|
+| `react-spinners` | `<Spinner />` |
+| `react-loading-skeleton` | `<Skeleton>` |
+| Simple tooltip libs | `<Tooltip>` |
+| Simple modal libs | `<Dialog.Root>` |
+| Simple dropdown libs | `<DropdownMenu.Root>` |
+| `react-toggle` | `<Switch />` |
+| Simple tabs libs | `<Tabs.Root>` |
+| `react-avatar` | `<Avatar>` |
+| Simple badge libs | `<Badge>` |
+| `react-callout` | `<Callout.Root>` |
 
 ```tsx
-// Third-party component - don't modify internals
-// NOTE: Uses className (third-party, not refactorable)
-<ThirdPartyDatePicker className="..." />
+// BAD - unnecessary dependency
+import Skeleton from 'react-loading-skeleton';
+<Skeleton height={20} />
 
-// Wrap in Radix layout for integration
+// GOOD - use Radix
+import { Skeleton, Text } from '@radix-ui/themes';
+<Skeleton><Text>Loading...</Text></Skeleton>
+```
+
+### Complex Components → Flag or Propose
+
+For complex 3rd party components without direct equivalents:
+
+1. **Flag and leave as-is** if replacement is non-trivial
+2. **Propose building** an equivalent from Radix primitives if feasible
+
+```tsx
+// Complex component - flag as deviation
+// FLAG: ThirdPartyDatePicker - no Radix equivalent, would require building from primitives
+// OPTION: Build custom DatePicker using Popover + Calendar grid from primitives
 <Box mb="4">
   <ThirdPartyDatePicker />
 </Box>
+
+// Complex rich-text editor - leave as-is
+// FLAG: TipTap/Slate - complex internals, keep dependency
+<Box p="4">
+  <RichTextEditor />
+</Box>
 ```
+
+### When to Propose Building
+
+Propose building from primitives when:
+- Component is medium complexity (date picker, autocomplete, color picker)
+- Only basic features are needed
+- Removing the dependency reduces bundle size significantly
+
+Do NOT propose building when:
+- Component is highly complex (rich text editors, data grids, charts)
+- Advanced features are required (drag-and-drop, virtualization)
+- Maintenance burden outweighs dependency cost
 
 ## Red Flags - You're About to Violate This
 
@@ -129,6 +179,7 @@ STOP if you think:
 - "Just add className, it's faster" - Use theme props
 - "Match existing code" - Refactor, don't copy debt
 - "It's just one div" - Use `<Box>` or `<Flex>`
+- "User said quickly" - Radix components ARE quick
 - "className='flex gap-2' is fine" - No. Use `<Flex gap="2">`
 - "I need custom spacing" - Use theme scale: `gap="4"` not `gap-[17px]`
 
