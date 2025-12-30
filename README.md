@@ -1,4 +1,4 @@
-# Claude Code skill: Enforce Radix primitives
+# enforce-radix-themes
 
 A Claude Code skill that enforces [Radix Themes](https://www.radix-ui.com/themes) components over raw HTML and Tailwind CSS in React/Next.js projects.
 
@@ -9,7 +9,7 @@ This skill automatically triggers when writing React/Next.js UI code and enforce
 | Prevents | Enforces |
 |----------|----------|
 | Inline Tailwind classes | Theme props (`gap="3"`, `size="2"`) |
-| `className` and `cn()` | Component variants |
+| `className` for styling | Component variants and props |
 | Raw HTML (`<div>`, `<button>`, `<p>`) | Radix components (`<Flex>`, `<Button>`, `<Text>`) |
 | Simple 3rd party UI libs | Radix equivalents |
 
@@ -18,12 +18,12 @@ This skill automatically triggers when writing React/Next.js UI code and enforce
 ### Option 1: Clone directly
 
 ```bash
-git clone https://github.com/ag0x00/enforce-radix-primitives ~/.claude/skills/enforce-radix-primitives
+git clone https://github.com/ag0x00/enforce-radix-themes ~/.claude/skills/enforce-radix-themes
 ```
 
 ### Option 2: Download the .skill file
 
-Download `enforce-radix-primitives.skill` from releases and install via Claude Code.
+Download `enforce-radix-themes.skill` from releases and install via Claude Code.
 
 ## Example
 
@@ -42,6 +42,29 @@ import { Flex, Heading, Button } from '@radix-ui/themes';
   <Button>Save</Button>
 </Flex>
 ```
+
+## Key Features
+
+### Responsive Design Support
+
+```tsx
+<Flex direction={{ initial: "column", md: "row" }}>
+<Grid columns={{ initial: "1", md: "2", lg: "3" }}>
+<Text size={{ initial: "2", md: "3" }}>
+```
+
+### Framer Motion Compatibility
+
+```tsx
+// Motion wrappers allowed with style prop (not className)
+<motion.div style={{ width: '100%' }} animate={{ opacity: 1 }}>
+  <Flex gap="3">{/* Radix components inside */}</Flex>
+</motion.div>
+```
+
+### Migration Period Guidance
+
+Both systems can coexist temporarily during migration - new code must use Radix Themes.
 
 ## Component Mapping
 
@@ -87,7 +110,7 @@ import { Flex, Heading, Button } from '@radix-ui/themes';
 
 The skill handles 3rd party components intelligently:
 
-### Simple Components → Replace
+### Simple Components - Replace
 
 If a direct Radix equivalent exists, replace it:
 
@@ -101,7 +124,7 @@ If a direct Radix equivalent exists, replace it:
 | `react-toggle` | `<Switch />` |
 | `react-avatar` | `<Avatar>` |
 
-### Complex Components → Flag
+### Complex Components - Flag
 
 For complex components without direct equivalents:
 
@@ -133,7 +156,9 @@ export default function RootLayout({ children }) {
   return (
     <html>
       <body>
-        <Theme>{children}</Theme>
+        <Theme accentColor="cyan" grayColor="slate" radius="medium">
+          {children}
+        </Theme>
       </body>
     </html>
   );
@@ -143,8 +168,9 @@ export default function RootLayout({ children }) {
 ## Files
 
 ```
-enforce-radix-primitives/
-├── SKILL.md                         # Main skill instructions
+enforce-radix-themes/
+├── skill.md                         # Main skill instructions
+├── enforce-radix-themes.skill       # Portable skill file
 ├── references/
 │   └── radix-themes-api.md          # Offline API reference
 └── LICENSE.txt

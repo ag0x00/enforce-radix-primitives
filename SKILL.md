@@ -1,9 +1,9 @@
 ---
-name: enforce-radix-primitives
+name: enforce-radix-themes
 description: Use when writing ANY React/Next.js UI code, creating components, layouts, or modifying pages - prevents inline Tailwind, raw HTML elements (div, button, input, a), and className usage; enforces Radix Themes components and theme props; replaces simple 3rd party components with Radix equivalents, flags complex ones for review
 ---
 
-# Enforce Radix Primitives
+# Enforce Radix Themes
 
 ## Overview
 
@@ -30,7 +30,7 @@ export default function SettingsPage() {
 }
 
 // GOOD - Radix Themes components with theme props
-import { Box, Flex, Heading, Button } from '@radix-ui/themes';
+import { Box, Flex, Heading, Button, TextField } from '@radix-ui/themes';
 
 export default function SettingsPage() {
   return (
@@ -56,8 +56,20 @@ export default function SettingsPage() {
 | `<button>` | `<button className="...">` | `<Button variant="...">` |
 | `<a>` | `<a href="..." className="...">` | `<Link>` |
 | `<input>` | `<input className="...">` | `<TextField.Root>` |
-| `className` | Any `className` prop | Theme props: `gap`, `p`, `size` |
-| `cn()` | `cn("flex", condition && "bg-blue")` | Component variants |
+| `className` for styling | `className="flex gap-2"` | Theme props: `gap`, `p`, `size` |
+
+## Allowed className Usage
+
+**className is allowed for:**
+- `data-*` attributes for testing: `className="group/message"`
+- Animation libraries (Framer Motion): See "Framer Motion" section
+- Third-party component integration that requires it
+
+**className is NOT allowed for:**
+- Layout (use Flex, Box, Grid)
+- Spacing (use gap, p, m props)
+- Typography (use size, weight, color props)
+- Colors (use color prop or theme tokens)
 
 ## Radix Themes Component Mapping
 
@@ -108,13 +120,85 @@ export default function SettingsPage() {
 | `font-bold` | `weight` | `"regular"`, `"medium"`, `"bold"` |
 | `text-gray-500` | `color` | `"gray"`, `"blue"`, `"red"`, etc. |
 
+## Responsive Design
+
+**Use object syntax for breakpoints:**
+
+```tsx
+// Responsive direction
+<Flex direction={{ initial: "column", sm: "row" }}>
+
+// Responsive columns
+<Grid columns={{ initial: "1", md: "2", lg: "3" }}>
+
+// Responsive text size
+<Text size={{ initial: "2", md: "3" }}>
+
+// Responsive spacing
+<Box p={{ initial: "2", md: "4", lg: "6" }}>
+```
+
+**Breakpoints:**
+- `initial` - Mobile first (0px+)
+- `xs` - 520px+
+- `sm` - 768px+
+- `md` - 1024px+
+- `lg` - 1280px+
+- `xl` - 1640px+
+
+## Framer Motion Compatibility
+
+**Framer Motion requires DOM elements. Two approaches:**
+
+```tsx
+// Option 1: style prop (preferred)
+// Use style for layout, keep motion for animation
+<motion.div
+  style={{ width: '100%' }}
+  animate={{ opacity: 1 }}
+  data-role={message.role}
+>
+  <Flex gap="3" align="center">
+    {/* Radix components inside */}
+  </Flex>
+</motion.div>
+
+// Option 2: asChild prop
+// Motion element becomes the Box
+<Box asChild p="4">
+  <motion.div animate={{ opacity: 1 }}>
+    <Text>Animated content</Text>
+  </motion.div>
+</Box>
+```
+
+**Rule:** Motion wrappers are the ONE exception where raw elements are allowed, but they should contain NO styling className - only animation props and data attributes.
+
+## Migration Period
+
+**During migration from Tailwind/shadcn to Radix Themes:**
+
+1. Both systems may coexist temporarily
+2. New code MUST use Radix Themes
+3. When touching existing code, migrate it
+4. Don't mix: a component is either fully Tailwind OR fully Radix Themes
+
+```tsx
+// BAD - mixed systems
+<Flex className="bg-blue-500" gap="4">
+
+// GOOD - pure Radix Themes
+<Flex gap="4" style={{ backgroundColor: 'var(--accent-9)' }}>
+
+// ALSO GOOD - if you need custom color, use CSS variable
+<Box style={{ backgroundColor: 'var(--cyan-9)' }}>
+```
+
 ## Third-Party Components
 
 **Replace simple 3rd party components with Radix equivalents. Flag complex ones.**
 
-### Simple Components → Replace
-
-If a 3rd party component has a direct Radix equivalent, replace it:
+### Simple Components - Replace
 
 | 3rd Party | Radix Replacement |
 |-----------|-------------------|
@@ -129,49 +213,17 @@ If a 3rd party component has a direct Radix equivalent, replace it:
 | Simple badge libs | `<Badge>` |
 | `react-callout` | `<Callout.Root>` |
 
-```tsx
-// BAD - unnecessary dependency
-import Skeleton from 'react-loading-skeleton';
-<Skeleton height={20} />
+### Complex Components - Flag
 
-// GOOD - use Radix
-import { Skeleton, Text } from '@radix-ui/themes';
-<Skeleton><Text>Loading...</Text></Skeleton>
-```
-
-### Complex Components → Flag or Propose
-
-For complex 3rd party components without direct equivalents:
-
-1. **Flag and leave as-is** if replacement is non-trivial
-2. **Propose building** an equivalent from Radix primitives if feasible
+For complex 3rd party components without direct equivalents, flag and wrap:
 
 ```tsx
-// Complex component - flag as deviation
-// FLAG: ThirdPartyDatePicker - no Radix equivalent, would require building from primitives
-// OPTION: Build custom DatePicker using Popover + Calendar grid from primitives
+// FLAG: Complex component - no Radix equivalent
+// Wrap in Box for consistent spacing, keep internal styling
 <Box mb="4">
   <ThirdPartyDatePicker />
 </Box>
-
-// Complex rich-text editor - leave as-is
-// FLAG: TipTap/Slate - complex internals, keep dependency
-<Box p="4">
-  <RichTextEditor />
-</Box>
 ```
-
-### When to Propose Building
-
-Propose building from primitives when:
-- Component is medium complexity (date picker, autocomplete, color picker)
-- Only basic features are needed
-- Removing the dependency reduces bundle size significantly
-
-Do NOT propose building when:
-- Component is highly complex (rich text editors, data grids, charts)
-- Advanced features are required (drag-and-drop, virtualization)
-- Maintenance burden outweighs dependency cost
 
 ## Red Flags - You're About to Violate This
 
@@ -188,11 +240,11 @@ STOP if you think:
 After writing UI code, verify:
 
 ```bash
-# Should return zero results in page/route files
-grep -r "className=" app/ pages/ --include="*.tsx"
-grep -r "<div" app/ pages/ --include="*.tsx"
-grep -r "<button" app/ pages/ --include="*.tsx"
-grep -r "<p>" app/ pages/ --include="*.tsx"
+# Should return zero results in migrated components
+grep -r "className=" path/to/component.tsx | grep -v "group/" | grep -v "data-"
+grep -rE "<div[^>]*>" path/to/component.tsx
+grep -rE "<button[^>]*>" path/to/component.tsx
+grep -rE "<p>" path/to/component.tsx
 ```
 
 ## Loading States
@@ -200,7 +252,7 @@ grep -r "<p>" app/ pages/ --include="*.tsx"
 **RULE: Always use Skeleton for content that takes time to load.**
 
 ```tsx
-import { Skeleton, Spinner, Button } from '@radix-ui/themes';
+import { Skeleton, Button } from '@radix-ui/themes';
 
 // Wrap content - inherits dimensions
 <Skeleton loading={isLoading}>
@@ -210,36 +262,6 @@ import { Skeleton, Spinner, Button } from '@radix-ui/themes';
 // Button with loading state (auto-disables, shows spinner)
 <Button loading={isSaving}>Save</Button>
 ```
-
-## Animation & Microinteractions
-
-**RULE: All interactive elements should have motion feedback.**
-
-Use `data-state` and `data-side` attributes for CSS animations:
-
-```css
-.DialogContent[data-state="open"] {
-  animation: slideIn 300ms ease-out;
-}
-.PopoverContent[data-side="bottom"] {
-  animation: slideDown 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-```
-
-## Documentation
-
-**For detailed API reference, use Context7 to fetch latest docs:**
-
-```
-Context7 library IDs:
-- /websites/radix-ui_themes     (Radix Themes components)
-- /websites/radix-ui-primitives (Radix Primitives)
-- /websites/radix-ui_colors     (Color system)
-```
-
-Query topics: `layout`, `typography`, `Button`, `animation`, `Skeleton`, `Theme setup`, etc.
-
-See `references/radix-themes-api.md` for offline quick reference.
 
 ## Quick Reference
 
@@ -267,7 +289,8 @@ See `references/radix-themes-api.md` for offline quick reference.
 <Skeleton loading={isLoading}><Text>...</Text></Skeleton>
 <Button loading>Saving...</Button>
 
-// Responsive (object syntax)
+// Responsive
 <Flex direction={{ initial: "column", md: "row" }}>
 <Grid columns={{ initial: "1", md: "2", lg: "3" }}>
+<Text size={{ initial: "2", md: "3" }}>
 ```
